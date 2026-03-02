@@ -275,16 +275,20 @@ const server = http.createServer(async (req, res) => {
 
   // ── favicon & 이미지 (logo.png 등)
   const imgDir = path.join(__dirname, 'image.png');
-  if (parsed.pathname === '/favicon.ico') {
-    const logoPath = path.join(imgDir, 'character.png');
-    if (fs.existsSync(logoPath)) {
+  const publicDir = path.join(__dirname, 'public');
+  const pathname = (parsed.pathname || '').split('?')[0];
+  if (pathname === '/favicon.ico') {
+    const faviconPath = path.join(publicDir, 'favicon.ico');
+    const fallbackPath = path.join(imgDir, 'character.png');
+    const src = fs.existsSync(faviconPath) ? faviconPath : fallbackPath;
+    if (fs.existsSync(src)) {
       res.writeHead(200, { 'Content-Type': 'image/png' });
-      res.end(fs.readFileSync(logoPath));
+      res.end(fs.readFileSync(src));
       return;
     }
   }
-  if (parsed.pathname.startsWith('/images/')) {
-    const relPath = parsed.pathname.slice('/images/'.length).replace(/\.\./g, '');
+  if (pathname.startsWith('/images/')) {
+    const relPath = pathname.slice('/images/'.length).replace(/\.\./g, '');
     const filePath = path.join(imgDir, relPath);
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       const ext = path.extname(filePath).toLowerCase();
@@ -306,8 +310,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── URL 크롤링 API: GET /fetch?url=...
-  if (parsed.pathname === '/fetch' && req.method === 'GET') {
+  // ── URL 크롤링 API: GET /fetch?url=... 또는 /api/fetch?url=...
+  if ((parsed.pathname === '/fetch' || parsed.pathname === '/api/fetch') && req.method === 'GET') {
     const targetUrl = parsed.query.url;
     if (!targetUrl) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -339,8 +343,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── 분석 API: POST /analyze
-  if (parsed.pathname === '/analyze' && req.method === 'POST') {
+  // ── 분석 API: POST /analyze 또는 /api/analyze
+  if ((parsed.pathname === '/analyze' || parsed.pathname === '/api/analyze') && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', async () => {

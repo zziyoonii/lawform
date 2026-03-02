@@ -12,8 +12,8 @@
 <meta property="og:image" content="/images/character.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<link rel="icon" href="/favicon.ico" type="image/x-icon">
-<link rel="icon" href="/images/character.png" type="image/png" sizes="32x32">
+<link rel="icon" href="/favicon.ico?v=1" type="image/x-icon">
+<link rel="icon" href="/images/character.png?v=1" type="image/png" sizes="32x32">
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -399,8 +399,12 @@ async function getDocContent(doc) {
   if (mode === 'text') return document.getElementById(`${doc}Text`).value.trim();
   const urlVal = document.getElementById(`${doc}Url`).value.trim();
   if (!urlVal) return '';
-  const res = await fetch(`/fetch?url=${encodeURIComponent(urlVal)}`);
-  const data = await res.json();
+  const res = await fetch(`/api/fetch?url=${encodeURIComponent(urlVal)}`);
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch {
+    throw new Error('API 응답 오류. 배포 환경에서 /api/fetch가 동작하는지 확인하세요.');
+  }
   if (data.error) throw new Error(`URL 크롤링 실패: ${data.error}`);
   return data.text;
 }
@@ -440,8 +444,12 @@ async function analyze() {
     showOnly('emptyState'); document.getElementById('analyzeBtn').disabled = false; return;
   }
   try {
-    const res = await fetch('/analyze', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({tosText, ppText, plan}) });
-    const data = await res.json();
+    const res = await fetch('/api/analyze', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({tosText, ppText, plan}) });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch {
+      throw new Error('API 응답 오류. 배포 환경에서 /api/analyze가 동작하는지 확인하세요.');
+    }
     if (data.error) throw new Error(data.error);
     stopLoading(); renderResult(data.result, plan);
   } catch(e) {
