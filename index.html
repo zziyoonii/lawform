@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lawform</title>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root {
+  --bg: #f5f4f0;
+  --surface: #ffffff;
+  --surface2: #f0efe9;
+  --border: #e0dfd8;
+  --border2: #cccbc2;
+  --text: #1a1a18;
+  --muted: #7a7a70;
+  --accent: #1a3a2a;
+  --accent2: #2d5a3d;
+  --accent-light: #e8f2ec;
+  --warn: #b45309;
+  --warn-light: #fef3c7;
+  --danger: #991b1b;
+  --danger-light: #fef2f2;
+  --ok: #166534;
+  --ok-light: #f0fdf4;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Pretendard', -apple-system, sans-serif; min-height: 100vh; line-height: 1.6; }
+
+header { background: var(--accent); color: #fff; padding: 0 40px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 100; }
+.logo { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.logo-icon { width: 28px; height: 28px; background: rgba(255,255,255,0.15); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.model-toggle { display: flex; background: rgba(255,255,255,0.1); border-radius: 8px; padding: 3px; gap: 2px; }
+.model-btn { padding: 5px 14px; border: none; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; background: transparent; color: rgba(255,255,255,0.6); font-family: inherit; transition: all 0.18s; }
+.model-btn.active { background: rgba(255,255,255,0.2); color: #fff; }
+.cost-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; background: rgba(255,255,255,0.12); padding: 4px 12px; border-radius: 20px; letter-spacing: 0.5px; white-space: nowrap; }
+.cost-badge span { color: #86efac; font-weight: 600; }
+
+.layout { display: grid; grid-template-columns: 380px 1fr; min-height: calc(100vh - 60px); }
+.left-panel { background: var(--surface); border-right: 1px solid var(--border); padding: 28px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
+.right-panel { padding: 32px 36px; overflow-y: auto; }
+.panel-title { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+
+.input-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
+.input-card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+.card-icon { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+.card-icon.green { background: var(--accent-light); }
+.card-icon.amber { background: var(--warn-light); }
+.card-title { font-size: 13px; font-weight: 600; }
+.card-sub { font-size: 11px; color: var(--muted); margin-left: auto; transition: color 0.2s; }
+.input-card-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+.tab-toggle { display: flex; background: var(--border); border-radius: 7px; padding: 3px; gap: 2px; }
+.tab-btn { flex: 1; padding: 6px; border: none; border-radius: 5px; font-size: 12px; font-weight: 500; cursor: pointer; background: transparent; color: var(--muted); transition: all 0.18s; font-family: inherit; }
+.tab-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+.url-wrap { position: relative; }
+.url-input { width: 100%; padding: 10px 40px 10px 12px; border: 1px solid var(--border2); border-radius: 8px; font-size: 13px; font-family: inherit; background: var(--surface); color: var(--text); outline: none; transition: border-color 0.18s; }
+.url-input:focus { border-color: var(--accent2); }
+.url-input::placeholder { color: var(--muted); }
+.url-icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; }
+
+.drop-zone { border: 2px dashed var(--border2); border-radius: 8px; padding: 18px; text-align: center; cursor: pointer; transition: all 0.18s; background: var(--surface); position: relative; }
+.drop-zone:hover { border-color: var(--accent2); background: var(--accent-light); }
+.drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop-icon { font-size: 22px; margin-bottom: 4px; }
+.drop-text { font-size: 12px; color: var(--muted); }
+.drop-text strong { color: var(--accent2); }
+.file-info { font-size: 12px; padding: 6px 10px; border-radius: 6px; display: none; }
+.file-info.ok { background: var(--ok-light); color: var(--ok); }
+.file-info.err { background: var(--danger-light); color: var(--danger); }
+
+.plan-textarea { width: 100%; min-height: 150px; padding: 12px 14px; border: 1px solid var(--border2); border-radius: 8px; font-size: 13px; font-family: inherit; background: var(--surface); color: var(--text); resize: vertical; outline: none; transition: border-color 0.18s; line-height: 1.6; }
+.plan-textarea:focus { border-color: var(--accent2); }
+.plan-textarea::placeholder { color: var(--muted); }
+.char-count { font-size: 11px; color: var(--muted); text-align: right; }
+
+.analyze-btn { width: 100%; padding: 14px; background: var(--accent); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.18s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.analyze-btn:hover:not(:disabled) { background: var(--accent2); transform: translateY(-1px); }
+.analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.cost-info { background: var(--accent-light); border: 1px solid #b3d9c0; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--accent2); line-height: 1.7; }
+.cost-info strong { color: var(--accent); }
+
+.empty-state { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: var(--muted); text-align: center; min-height: 400px; }
+.empty-icon { font-size: 48px; opacity: 0.3; }
+.empty-title { font-size: 18px; font-weight: 600; color: var(--text); opacity: 0.4; }
+.empty-desc { font-size: 13px; max-width: 320px; line-height: 1.7; }
+
+.loading-state { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px; min-height: 400px; }
+.spinner { width: 44px; height: 44px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-steps { display: flex; flex-direction: column; gap: 6px; width: 310px; }
+.loading-step { font-size: 12px; color: var(--muted); padding: 8px 14px; border-radius: 6px; opacity: 0.4; transition: all 0.3s; font-family: 'JetBrains Mono', monospace; }
+.loading-step.active { opacity: 1; background: var(--accent-light); color: var(--accent); }
+
+.error-box { display: none; background: var(--danger-light); border: 1px solid #fecaca; border-radius: 12px; padding: 20px 24px; color: var(--danger); font-size: 14px; line-height: 1.8; }
+.error-box code { background: #fecaca; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+.result-area { display: none; }
+.result-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 16px; }
+.result-title { font-size: 20px; font-weight: 700; }
+.result-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.verdict-badge { padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.verdict-ok { background: var(--ok-light); color: var(--ok); }
+.verdict-partial { background: var(--warn-light); color: var(--warn); }
+.verdict-fail { background: var(--danger-light); color: var(--danger); }
+
+.summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
+.summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+.summary-stat { text-align: center; padding: 14px; border-radius: 10px; background: var(--surface2); }
+.stat-num { font-size: 28px; font-weight: 700; }
+.stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.stat-ok .stat-num { color: var(--ok); }
+.stat-warn .stat-num { color: var(--warn); }
+.stat-fail .stat-num { color: var(--danger); }
+
+.section-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin: 20px 0 10px; }
+
+.issue-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; box-shadow: var(--shadow); cursor: pointer; transition: box-shadow 0.18s; }
+.issue-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+.issue-header { display: flex; align-items: center; gap: 12px; padding: 14px 18px; }
+.severity-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.sev-critical .severity-dot { background: var(--danger); }
+.sev-warning .severity-dot { background: var(--warn); }
+.sev-info .severity-dot { background: #2563eb; }
+.sev-ok .severity-dot { background: var(--ok); }
+.issue-title-wrap { flex: 1; }
+.issue-title { font-size: 14px; font-weight: 600; }
+.issue-category { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--muted); margin-top: 1px; }
+.severity-tag { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; }
+.sev-critical .severity-tag { background: var(--danger-light); color: var(--danger); }
+.sev-warning .severity-tag { background: var(--warn-light); color: var(--warn); }
+.sev-info .severity-tag { background: #eff6ff; color: #1d4ed8; }
+.sev-ok .severity-tag { background: var(--ok-light); color: var(--ok); }
+.expand-icon { color: var(--muted); font-size: 11px; transition: transform 0.2s; }
+.issue-card.expanded .expand-icon { transform: rotate(180deg); }
+.issue-body { display: none; padding: 0 18px 16px; border-top: 1px solid var(--border); }
+.issue-card.expanded .issue-body { display: block; }
+.body-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 14px; margin-bottom: 6px; }
+.body-text { font-size: 13px; line-height: 1.75; }
+.clause-tag { display: inline-block; background: var(--surface2); border: 1px solid var(--border2); border-radius: 4px; padding: 2px 8px; font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--muted); margin: 2px; }
+.action-list { display: flex; flex-direction: column; gap: 6px; }
+.action-item { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.6; }
+.action-num { width: 20px; height: 20px; background: var(--accent); color: #fff; border-radius: 50%; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+
+.recommendation-card { background: var(--accent); color: #fff; border-radius: 12px; padding: 20px 24px; margin-top: 20px; }
+.rec-title { font-size: 11px; font-weight: 600; opacity: 0.6; margin-bottom: 8px; letter-spacing: 1px; text-transform: uppercase; }
+.rec-text { font-size: 14px; line-height: 1.75; }
+.notice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.15); }
+.notice-block-label { font-size: 11px; font-weight: 600; opacity: 0.6; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+.period-badge { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; }
+.channel-tag { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.15); color: #fff; margin: 3px 3px 3px 0; }
+.notice-reason-text { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.12); font-size: 12px; opacity: 0.7; line-height: 1.8; }
+.disclaimer { margin-top: 14px; font-size: 11px; opacity: 0.45; }
+
+/* ── 공지 초안 */
+.draft-section { margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+.draft-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface2); }
+.draft-title { font-size: 14px; font-weight: 700; color: var(--accent); }
+.draft-tabs { display: flex; background: var(--border); border-radius: 7px; padding: 3px; gap: 2px; }
+.draft-tab { padding: 5px 13px; border: none; border-radius: 5px; font-size: 12px; font-weight: 500; cursor: pointer; background: transparent; color: var(--muted); font-family: inherit; transition: all 0.18s; }
+.draft-tab.active { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: 600; }
+.draft-body { padding: 16px 20px; }
+.draft-preview { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; font-size: 13px; line-height: 1.9; color: var(--text); white-space: pre-wrap; font-family: inherit; }
+.copy-btn { margin-top: 10px; width: 100%; padding: 10px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.18s; }
+.copy-btn:hover { background: var(--accent2); }
+.copy-btn.copied { background: var(--ok); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚖️</div>
+    Lawform
+  </div>
+  <div class="header-right">
+    <div class="model-toggle">
+      <button class="model-btn active" id="btnGemini" onclick="setModel('gemini')">Gemini Flash</button>
+      <button class="model-btn" id="btnHaiku" onclick="setModel('haiku')">Claude Haiku</button>
+    </div>
+    <div class="cost-badge" id="costBadge">무료 · <span>₩0</span></div>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="left-panel">
+    <div>
+      <div class="panel-title">법률 문서 입력</div>
+      <div class="input-card">
+        <div class="input-card-header">
+          <div class="card-icon green">📋</div>
+          <span class="card-title">이용약관</span>
+          <span class="card-sub" id="tosStatus">미입력</span>
+        </div>
+        <div class="input-card-body">
+          <div class="tab-toggle">
+            <button class="tab-btn active" onclick="switchTab('tos','url',this)">🔗 URL</button>
+            <button class="tab-btn" onclick="switchTab('tos','pdf',this)">📄 PDF</button>
+            <button class="tab-btn" onclick="switchTab('tos','text',this)">✏️ 직접입력</button>
+          </div>
+          <div id="tos-url">
+            <div class="url-wrap">
+              <input class="url-input" id="tosUrl" type="url" placeholder="https://example.com/terms" oninput="onUrlInput('tos')">
+              <span class="url-icon" id="tosUrlIcon"></span>
+            </div>
+          </div>
+          <div id="tos-pdf" style="display:none">
+            <div class="drop-zone">
+              <input type="file" accept=".pdf" onchange="handleFile('tos',this)">
+              <div class="drop-icon">📎</div>
+              <div class="drop-text"><strong>클릭하거나 드래그</strong>하여 PDF 업로드</div>
+            </div>
+            <div class="file-info" id="tosFileInfo"></div>
+          </div>
+          <div id="tos-text" style="display:none">
+            <textarea class="plan-textarea" id="tosText" placeholder="이용약관 전문을 붙여넣기 하세요..." style="min-height:90px" oninput="updateStatus('tos')"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-card">
+        <div class="input-card-header">
+          <div class="card-icon amber">🔐</div>
+          <span class="card-title">개인정보 처리방침</span>
+          <span class="card-sub" id="ppStatus">미입력</span>
+        </div>
+        <div class="input-card-body">
+          <div class="tab-toggle">
+            <button class="tab-btn active" onclick="switchTab('pp','url',this)">🔗 URL</button>
+            <button class="tab-btn" onclick="switchTab('pp','pdf',this)">📄 PDF</button>
+            <button class="tab-btn" onclick="switchTab('pp','text',this)">✏️ 직접입력</button>
+          </div>
+          <div id="pp-url">
+            <div class="url-wrap">
+              <input class="url-input" id="ppUrl" type="url" placeholder="https://example.com/privacy" oninput="onUrlInput('pp')">
+              <span class="url-icon" id="ppUrlIcon"></span>
+            </div>
+          </div>
+          <div id="pp-pdf" style="display:none">
+            <div class="drop-zone">
+              <input type="file" accept=".pdf" onchange="handleFile('pp',this)">
+              <div class="drop-icon">📎</div>
+              <div class="drop-text"><strong>클릭하거나 드래그</strong>하여 PDF 업로드</div>
+            </div>
+            <div class="file-info" id="ppFileInfo"></div>
+          </div>
+          <div id="pp-text" style="display:none">
+            <textarea class="plan-textarea" id="ppText" placeholder="개인정보 처리방침 전문을 붙여넣기 하세요..." style="min-height:90px" oninput="updateStatus('pp')"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel-title">서비스 기획안</div>
+      <div class="input-card">
+        <div class="input-card-header">
+          <div class="card-icon green">💡</div>
+          <span class="card-title">기획 내용</span>
+        </div>
+        <div class="input-card-body">
+          <textarea class="plan-textarea" id="planText" oninput="countChars()"
+            placeholder="기획하고 있는 서비스 또는 기능을 자유롭게 작성해주세요.
+
+예시)
+- 사용자 위치 정보를 수집해 주변 맛집 추천
+- 광고 파트너에게 행동 데이터 제공 (리타겟팅)
+- 카카오/네이버 소셜 로그인 연동
+- 결제 내역 분석으로 소비 패턴 리포트 제공"></textarea>
+          <div class="char-count" id="charCount">0자</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">⚖️ 준법 검토 시작</button>
+      <div class="cost-info" id="costInfo">
+        💡 <strong>Gemini 2.5 Flash 무료 티어 적용됨</strong><br>
+        핵심 섹션 추출 · URL 캐싱 1시간<br>
+        테스트 용도로 <strong>무료</strong>로 사용 가능 🎉
+      </div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">⚖️</div>
+      <div class="empty-title">검토 결과가 여기에 표시됩니다</div>
+      <div class="empty-desc">법률 문서와 기획안을 입력한 후<br>검토 시작 버튼을 눌러주세요.</div>
+    </div>
+    <div class="loading-state" id="loadingState">
+      <div class="spinner"></div>
+      <div style="font-size:14px;color:var(--muted)">AI가 문서를 분석하고 있습니다...</div>
+      <div class="loading-steps">
+        <div class="loading-step" id="step1">📄  문서 수집 & 핵심 섹션 추출 중...</div>
+        <div class="loading-step" id="step2">🔍  조항별 검토 중...</div>
+        <div class="loading-step" id="step3">⚠️  리스크 항목 식별 중...</div>
+        <div class="loading-step" id="step4">📝  공지 기간 & 채널 판단 중...</div>
+      </div>
+    </div>
+    <div class="error-box" id="errorBox"></div>
+    <div class="result-area" id="resultArea"></div>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const MODELS = {
+  gemini: { free: true, inputPricePerM: 0, outputPricePerM: 0, avgInputTokens: 8000, avgOutputTokens: 1500 },
+  haiku:  { free: false, inputPricePerM: 0.25, outputPricePerM: 1.25, avgInputTokens: 8000, avgOutputTokens: 1500 },
+};
+const KRW_PER_USD = 1380;
+let currentModel = 'gemini';
+
+function setModel(model) {
+  currentModel = model;
+  document.getElementById('btnGemini').classList.toggle('active', model === 'gemini');
+  document.getElementById('btnHaiku').classList.toggle('active', model === 'haiku');
+  updateCostDisplay();
+}
+function updateCostDisplay() {
+  const m = MODELS[currentModel];
+  const badge = document.getElementById('costBadge');
+  const info = document.getElementById('costInfo');
+  if (m.free) {
+    badge.innerHTML = `무료 · <span>₩0</span>`;
+    info.innerHTML = `💡 <strong>Gemini 2.5 Flash 무료 티어 적용됨</strong><br>핵심 섹션 추출 · URL 캐싱 1시간<br>테스트 용도로 <strong>무료</strong>로 사용 가능 🎉`;
+    info.style.cssText = 'background:var(--accent-light);border:1px solid #b3d9c0;border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent2);line-height:1.7;';
+  } else {
+    const costPerCall = ((m.avgInputTokens/1e6)*m.inputPricePerM + (m.avgOutputTokens/1e6)*m.outputPricePerM) * KRW_PER_USD;
+    const c = costPerCall < 1 ? costPerCall.toFixed(1) : Math.round(costPerCall);
+    badge.innerHTML = `Haiku · 1회 <span>~₩${c}</span>`;
+    info.innerHTML = `💰 <strong>Claude Haiku 예상 비용</strong><br>검토 1회: <strong>~₩${c}</strong><br>월 10회: ~₩${Math.round(costPerCall*10)} · 월 100회: ~₩${Math.round(costPerCall*100)}`;
+    info.style.cssText = 'background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400e;line-height:1.7;';
+  }
+}
+
+const state = { tos: { mode: 'url', pdfText: '' }, pp: { mode: 'url', pdfText: '' } };
+
+function switchTab(doc, mode, btn) {
+  state[doc].mode = mode;
+  ['url','pdf','text'].forEach(m => { document.getElementById(`${doc}-${m}`).style.display = m === mode ? 'block' : 'none'; });
+  btn.closest('.tab-toggle').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateStatus(doc);
+}
+function onUrlInput(doc) {
+  document.getElementById(`${doc}UrlIcon`).textContent = document.getElementById(`${doc}Url`).value.trim() ? '🔗' : '';
+  updateStatus(doc);
+}
+function updateStatus(doc) {
+  const mode = state[doc].mode;
+  let ok = mode === 'url' ? !!document.getElementById(`${doc}Url`).value.trim()
+         : mode === 'text' ? !!document.getElementById(`${doc}Text`).value.trim()
+         : !!state[doc].pdfText;
+  const el = document.getElementById(`${doc}Status`);
+  el.textContent = ok ? '✓ 입력됨' : '미입력';
+  el.style.color = ok ? '#166534' : '';
+}
+function countChars() {
+  document.getElementById('charCount').textContent = document.getElementById('planText').value.length.toLocaleString() + '자';
+}
+async function handleFile(doc, input) {
+  const file = input.files[0]; if (!file) return;
+  const infoEl = document.getElementById(`${doc}FileInfo`);
+  infoEl.className = 'file-info ok'; infoEl.style.display = 'block';
+  infoEl.textContent = `⏳ ${file.name} 파싱 중...`;
+  try {
+    const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const content = await (await pdf.getPage(i)).getTextContent();
+      text += content.items.map(x => x.str).join(' ') + '\n';
+    }
+    state[doc].pdfText = text;
+    infoEl.textContent = `✅ ${file.name} · ${pdf.numPages}페이지 · ${text.length.toLocaleString()}자`;
+    updateStatus(doc);
+  } catch(e) { infoEl.className = 'file-info err'; infoEl.textContent = `❌ 파싱 실패: ${e.message}`; }
+}
+async function getDocContent(doc) {
+  const mode = state[doc].mode;
+  if (mode === 'pdf') return state[doc].pdfText;
+  if (mode === 'text') return document.getElementById(`${doc}Text`).value.trim();
+  const urlVal = document.getElementById(`${doc}Url`).value.trim();
+  if (!urlVal) return '';
+  const res = await fetch(`/fetch?url=${encodeURIComponent(urlVal)}`);
+  const data = await res.json();
+  if (data.error) throw new Error(`URL 크롤링 실패: ${data.error}`);
+  return data.text;
+}
+
+let stepTimer;
+function startLoading() {
+  const steps = ['step1','step2','step3','step4']; let i = 0;
+  steps.forEach(s => document.getElementById(s).classList.remove('active'));
+  document.getElementById(steps[0]).classList.add('active');
+  stepTimer = setInterval(() => {
+    document.getElementById(steps[i]).classList.remove('active');
+    i = (i+1) % steps.length;
+    document.getElementById(steps[i]).classList.add('active');
+  }, 2200);
+}
+function stopLoading() { clearInterval(stepTimer); }
+function showOnly(id) {
+  ['emptyState','loadingState','errorBox','resultArea'].forEach(el => { document.getElementById(el).style.display = 'none'; });
+  document.getElementById(id).style.display = id === 'loadingState' ? 'flex' : 'block';
+}
+
+async function analyze() {
+  const plan = document.getElementById('planText').value.trim();
+  if (!plan) { alert('서비스 기획안을 입력해주세요.'); return; }
+  document.getElementById('analyzeBtn').disabled = true;
+  showOnly('loadingState'); startLoading();
+  let tosText = '', ppText = '';
+  try {
+    [tosText, ppText] = await Promise.all([getDocContent('tos'), getDocContent('pp')]);
+  } catch(e) {
+    stopLoading(); showOnly('errorBox');
+    document.getElementById('errorBox').innerHTML = `<strong>❌ 문서 수집 실패</strong><br>${e.message}<br><br>서버가 실행 중인지 확인하세요: <code>node server.js</code>`;
+    document.getElementById('analyzeBtn').disabled = false; return;
+  }
+  if (!tosText && !ppText) {
+    stopLoading(); alert('이용약관 또는 개인정보 처리방침을 하나 이상 입력해주세요.');
+    showOnly('emptyState'); document.getElementById('analyzeBtn').disabled = false; return;
+  }
+  try {
+    const res = await fetch('/analyze', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({tosText, ppText, plan}) });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    stopLoading(); renderResult(data.result, plan);
+  } catch(e) {
+    stopLoading(); showOnly('errorBox');
+    document.getElementById('errorBox').innerHTML = `<strong>❌ 분석 실패</strong><br>${e.message}`;
+  } finally { document.getElementById('analyzeBtn').disabled = false; }
+}
+
+// ── 공지 초안
+let currentDraftTab = 'email';
+let currentDrafts = {};
+
+function buildDrafts(r) {
+  const draft = r.noticeDraft || {};
+  const type = draft.type || '이용약관 및 개인정보처리방침';
+  const keyPoints = draft.keyPoints || [];
+  const pointsText = keyPoints.length > 0 ? keyPoints.map(p => `• ${p}`).join('\n') : '• (주요 개정 내용)';
+  const isPrivacy = type.includes('개인정보') && !type.includes('이용약관');
+  const intro = isPrivacy
+    ? '개인정보 보호를 위해 항상 최선을 다하고 있습니다.'
+    : type.includes('및')
+      ? '더 나은 서비스와 개인정보 보호를 위해 최선을 다하고 있습니다.'
+      : '더 나은 서비스를 제공하기 위해 최선을 다하겠습니다.';
+
+  return {
+    email: `안녕하세요, [서비스명]입니다.\n\n${intro}\n이번에 ${type} 일부를 개정하오니 확인 부탁드립니다.\n\n■ 주요 개정 내용\n${pointsText}\n\n자세한 내용은 홈페이지에서 확인하실 수 있습니다.\n항상 이용해 주셔서 감사합니다 :)`,
+    banner: `[서비스명] ${type}이 변경됩니다${keyPoints.length > 0 ? ' | ' + keyPoints.slice(0,2).join(', ') : ''} | 자세히 보기 →`,
+    notice: `[${type} 개정 안내]\n\n${intro}\n\n■ 주요 개정 내용\n${pointsText}\n\n자세한 내용은 공지사항을 확인해 주세요.\n항상 이용해 주셔서 감사합니다 :)`,
+  };
+}
+
+function switchDraftTab(tab) {
+  currentDraftTab = tab;
+  document.querySelectorAll('.draft-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('draftPreview').textContent = currentDrafts[tab] || '';
+  const btn = document.getElementById('copyBtn');
+  btn.textContent = '📋 복사하기'; btn.classList.remove('copied');
+}
+
+function copyDraft() {
+  navigator.clipboard.writeText(currentDrafts[currentDraftTab] || '').then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✅ 복사됨!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 복사하기'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function renderResult(r, plan) {
+  const short = plan.length > 50 ? plan.substring(0,50) + '...' : plan;
+  const verdictMap = {
+    pass:    ['verdict-ok',      '✅ 현재 문서로 진행 가능'],
+    partial: ['verdict-partial', '⚠️ 일부 개정 필요'],
+    fail:    ['verdict-fail',    '🚫 개정 필수 후 진행'],
+  };
+  const [vCls, vLabel] = verdictMap[r.verdict] || verdictMap.partial;
+  const sevMap = {
+    critical: { cls: 'sev-critical', label: '즉시 개정 필요' },
+    warning:  { cls: 'sev-warning',  label: '개정 권장' },
+    info:     { cls: 'sev-info',     label: '보완 권장' },
+    ok:       { cls: 'sev-ok',       label: '현재 적합' },
+  };
+
+  // 공지 초안 미리 생성
+  currentDrafts = buildDrafts(r);
+  currentDraftTab = 'email';
+
+  const draftHtml = r.verdict !== 'pass' ? `
+  <div class="draft-section">
+    <div class="draft-header">
+      <div class="draft-title">📣 공지 초안</div>
+      <div class="draft-tabs">
+        <button class="draft-tab active" data-tab="email" onclick="switchDraftTab('email')">📧 이메일</button>
+        <button class="draft-tab" data-tab="banner" onclick="switchDraftTab('banner')">🔖 띠배너</button>
+        <button class="draft-tab" data-tab="notice" onclick="switchDraftTab('notice')">📋 공지사항</button>
+      </div>
+    </div>
+    <div class="draft-body">
+      <div class="draft-preview" id="draftPreview"></div>
+      <button class="copy-btn" id="copyBtn" onclick="copyDraft()">📋 복사하기</button>
+    </div>
+  </div>` : '';
+
+  const is30 = r.noticePeriod === '30일';
+  const periodBg = is30 ? 'rgba(239,68,68,0.22)' : 'rgba(245,158,11,0.22)';
+  const periodColor = is30 ? '#fca5a5' : '#fcd34d';
+
+  const issuesHtml = (r.issues || []).map(issue => {
+    const sev = sevMap[issue.severity] || sevMap.info;
+    const clauses = (issue.relatedClauses || []).map(c => `<span class="clause-tag">${c}</span>`).join('');
+    const actions = (issue.actions || []).map((a,i) =>
+      `<div class="action-item"><div class="action-num">${i+1}</div><div>${a}</div></div>`
+    ).join('');
+    return `
+    <div class="issue-card ${sev.cls}" onclick="this.classList.toggle('expanded')">
+      <div class="issue-header">
+        <div class="severity-dot"></div>
+        <div class="issue-title-wrap">
+          <div class="issue-title">${issue.title}</div>
+          <div class="issue-category">${issue.category}</div>
+        </div>
+        <span class="severity-tag">${sev.label}</span>
+        <span class="expand-icon">▼</span>
+      </div>
+      <div class="issue-body">
+        <div class="body-label">검토 내용</div>
+        <div class="body-text">${issue.description}</div>
+        ${clauses ? `<div class="body-label">관련 조항</div><div>${clauses}</div>` : ''}
+        ${actions ? `<div class="body-label">선행 작업</div><div class="action-list">${actions}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('resultArea').innerHTML = `
+  <div class="result-header">
+    <div>
+      <div class="result-title">준법 검토 결과</div>
+      <div class="result-meta">"${short}" · ${new Date().toLocaleString('ko-KR')}</div>
+    </div>
+    <div class="verdict-badge ${vCls}">${vLabel}</div>
+  </div>
+  <div class="summary-card">
+    <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">검토 요약</div>
+    <p style="font-size:14px;line-height:1.75">${r.summary}</p>
+    <div class="summary-grid">
+      <div class="summary-stat stat-fail"><div class="stat-num">${r.stats?.critical||0}</div><div class="stat-label">즉시 개정 필요</div></div>
+      <div class="summary-stat stat-warn"><div class="stat-num">${r.stats?.warning||0}</div><div class="stat-label">개정 권장</div></div>
+      <div class="summary-stat stat-ok"><div class="stat-num">${r.stats?.ok||0}</div><div class="stat-label">현재 적합</div></div>
+    </div>
+  </div>
+  <div class="section-label">항목별 검토</div>
+  ${issuesHtml}
+  <div class="recommendation-card">
+    <div class="rec-title">📌 종합 권고 사항</div>
+    <div class="rec-text">${r.overallRecommendation}</div>
+    <div class="notice-grid">
+      <div>
+        <div class="notice-block-label">📅 공지 기간</div>
+        <div class="period-badge" style="background:${periodBg};color:${periodColor}">${r.noticePeriod || '-'} 전 공지 필요</div>
+      </div>
+      <div>
+        <div class="notice-block-label">📢 공지 채널</div>
+        <div>${(r.noticeChannels||[]).map(ch=>`<span class="channel-tag">${ch}</span>`).join('')}</div>
+      </div>
+    </div>
+    <div class="notice-reason-text">${r.noticeReason||''}</div>
+    <div class="disclaimer">⚠️ 본 검토는 AI 기반 참고용이며 법적 자문을 대체하지 않습니다. 실제 개정 전 법무팀 확인을 권장합니다.</div>
+  </div>
+  ${draftHtml}`;
+
+  showOnly('resultArea');
+  if (r.verdict !== 'pass') document.getElementById('draftPreview').textContent = currentDrafts.email;
+  const first = document.querySelector('.issue-card.sev-critical');
+  if (first) first.classList.add('expanded');
+}
+</script>
+</body>
+</html>
