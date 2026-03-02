@@ -273,6 +273,28 @@ const server = http.createServer(async (req, res) => {
 
   const parsed = url.parse(req.url, true);
 
+  // ── favicon & 이미지 (logo.png 등)
+  const imgDir = path.join(__dirname, 'image.png');
+  if (parsed.pathname === '/favicon.ico') {
+    const logoPath = path.join(imgDir, 'character.png');
+    if (fs.existsSync(logoPath)) {
+      res.writeHead(200, { 'Content-Type': 'image/png' });
+      res.end(fs.readFileSync(logoPath));
+      return;
+    }
+  }
+  if (parsed.pathname.startsWith('/images/')) {
+    const relPath = parsed.pathname.slice('/images/'.length).replace(/\.\./g, '');
+    const filePath = path.join(imgDir, relPath);
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      const ext = path.extname(filePath).toLowerCase();
+      const mimes = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' };
+      res.writeHead(200, { 'Content-Type': mimes[ext] || 'application/octet-stream' });
+      res.end(fs.readFileSync(filePath));
+      return;
+    }
+  }
+
   // ── 정적 파일 (index.html)
   if (parsed.pathname === '/' || parsed.pathname === '/index.html') {
     const filePath = path.join(__dirname, 'index.html');
