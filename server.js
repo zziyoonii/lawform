@@ -301,7 +301,7 @@ const server = http.createServer(async (req, res) => {
 
   // ── 정적 파일 (index.html)
   if (parsed.pathname === '/' || parsed.pathname === '/index.html') {
-    const filePath = path.join(__dirname, 'index.html');
+    const filePath = path.join(__dirname, 'public', 'index.html');
     if (!fs.existsSync(filePath)) {
       res.writeHead(404); res.end('index.html 파일이 없습니다. server.js와 같은 폴더에 넣어주세요.'); return;
     }
