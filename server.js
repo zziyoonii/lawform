@@ -16,7 +16,7 @@ if (fs.existsSync(envPath)) {
   console.log('✅ .env 파일 로드 완료');
 }
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // ── 1. URL 캐시 (메모리, 1시간 유효)
 const urlCache = new Map();
