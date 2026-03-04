@@ -2,5 +2,9 @@
   "framework": null,
   "buildCommand": "node scripts/inject-env.js",
   "outputDirectory": "public",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "functions": {
+    "api/analyze.js": { "memory": 1024, "maxDuration": 60 },
+    "api/fetch.js": { "memory": 512, "maxDuration": 30 }
+  }
 }

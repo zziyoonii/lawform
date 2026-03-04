@@ -515,7 +515,8 @@ async function analyze() {
     const text = await res.text();
     let data;
     try { data = JSON.parse(text); } catch {
-      throw new Error('API 응답 오류. 배포 환경에서 /api/analyze가 동작하는지 확인하세요.');
+      const hint = res.status === 404 ? ' (404: API 경로 없음. Vercel functions 설정 확인)' : res.status >= 500 ? ' (서버 오류. GEMINI_API_KEY 등 환경변수 확인)' : ` (HTTP ${res.status})`;
+      throw new Error('API 응답 오류. 배포 환경에서 /api/analyze가 동작하는지 확인하세요.' + hint);
     }
     if (data.error) throw new Error(data.error);
     stopLoading(); renderResult(data.result, plan);
