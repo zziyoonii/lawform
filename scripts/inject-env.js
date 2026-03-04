@@ -13,13 +13,13 @@ const canonicalUrl = (
 const indexPath = path.join(publicDir, 'index.html');
 let html = fs.readFileSync(indexPath, 'utf8');
 html = html.replace(
-  '{{GA4_SCRIPT}}',
+  '<!-- {{GA4_SCRIPT}} -->',
   gaId
     ? `<!-- GA4 --><script async src="https://www.googletagmanager.com/gtag/js?id=${gaId}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}',{send_page_view:true});</script>`
     : '<!-- GA4: GA_MEASUREMENT_ID 미설정 -->'
 );
 html = html.replace(
-  '{{ADSENSE_SCRIPT}}',
+  '<!-- {{ADSENSE_SCRIPT}} -->',
   adsenseId
     ? `<!-- AdSense --><script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}" crossorigin="anonymous"></script>`
     : '<!-- AdSense: ADSENSE_CLIENT_ID 미설정 -->'

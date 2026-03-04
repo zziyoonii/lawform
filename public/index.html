@@ -19,8 +19,8 @@
 <link rel="icon" href="/images/character.png?v=1" type="image/png" sizes="32x32">
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-{{GA4_SCRIPT}}
-{{ADSENSE_SCRIPT}}
+<!-- {{GA4_SCRIPT}} -->
+<!-- {{ADSENSE_SCRIPT}} -->
 <style>
 :root {
   --bg: #f5f4f0;
@@ -44,7 +44,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: 'Pretendard', -apple-system, sans-serif; min-height: 100vh; line-height: 1.6; }
 
-header { background: var(--accent); color: #fff; padding: 0 40px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 100; }
+header { background: var(--accent); color: #fff; padding: 0 clamp(12px, 4vw, 40px); display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 100; }
 .logo { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
 .logo-icon { width: 28px; height: 28px; background: rgba(255,255,255,0.15); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
 .header-right { display: flex; align-items: center; gap: 12px; }
@@ -54,13 +54,14 @@ header { background: var(--accent); color: #fff; padding: 0 40px; display: flex;
 .cost-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; background: rgba(255,255,255,0.12); padding: 4px 12px; border-radius: 20px; letter-spacing: 0.5px; white-space: nowrap; min-width: 90px; text-align: center; }
 .cost-badge span { color: #86efac; font-weight: 600; }
 
-.layout { display: grid; grid-template-columns: 380px 1fr; min-height: calc(100vh - 60px); align-items: start; }
-.left-panel { position: sticky; top: 60px; align-self: start; background: var(--surface); border-right: 1px solid var(--border); padding: 28px; display: flex; flex-direction: column; gap: 24px; }
-.right-panel { padding: 32px 36px; }
-.panel-title { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.layout { display: grid; grid-template-columns: minmax(280px, 380px) 1fr; min-height: calc(100vh - 60px); align-items: start; }
+.left-panel { position: sticky; top: 60px; align-self: start; background: var(--surface); border-right: 1px solid var(--border); padding: clamp(16px, 3vw, 28px); display: flex; flex-direction: column; gap: 24px; }
+.right-panel { padding: clamp(16px, 3vw, 32px) clamp(16px, 3vw, 36px); }
+.panel-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.panel-title { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
 
 .input-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
-.input-card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+.input-card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .card-icon { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
 .card-icon.green { background: var(--accent-light); }
 .card-icon.amber { background: var(--warn-light); }
@@ -116,7 +117,7 @@ header { background: var(--accent); color: #fff; padding: 0 40px; display: flex;
 .error-box code { background: #fecaca; padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 
 .result-area { display: none; }
-.result-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 16px; }
+.result-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 16px; }
 .result-title { font-size: 20px; font-weight: 700; }
 .result-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
 .verdict-badge { padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
@@ -125,7 +126,7 @@ header { background: var(--accent); color: #fff; padding: 0 40px; display: flex;
 .verdict-fail { background: var(--danger-light); color: var(--danger); }
 
 .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
-.summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 16px; margin-top: 16px; }
 .summary-stat { text-align: center; padding: 14px; border-radius: 10px; background: var(--surface2); }
 .stat-num { font-size: 28px; font-weight: 700; }
 .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
@@ -165,7 +166,7 @@ header { background: var(--accent); color: #fff; padding: 0 40px; display: flex;
 .recommendation-card { background: var(--accent); color: #fff; border-radius: 12px; padding: 20px 24px; margin-top: 20px; }
 .rec-title { font-size: 11px; font-weight: 600; opacity: 0.6; margin-bottom: 8px; letter-spacing: 1px; text-transform: uppercase; }
 .rec-text { font-size: 14px; line-height: 1.75; }
-.notice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.15); }
+.notice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.15); }
 .notice-block-label { font-size: 11px; font-weight: 600; opacity: 0.6; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
 .period-badge { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; }
 .channel-tag { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.15); color: #fff; margin: 3px 3px 3px 0; }
@@ -174,9 +175,9 @@ header { background: var(--accent); color: #fff; padding: 0 40px; display: flex;
 
 /* ── 공지 초안 */
 .draft-section { margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
-.draft-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface2); }
+.draft-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface2); }
 .draft-title { font-size: 14px; font-weight: 700; color: var(--accent); }
-.draft-tabs { display: flex; background: var(--border); border-radius: 7px; padding: 3px; gap: 2px; }
+.draft-tabs { display: flex; flex-wrap: wrap; background: var(--border); border-radius: 7px; padding: 3px; gap: 2px; }
 .draft-tab { padding: 5px 13px; border: none; border-radius: 5px; font-size: 12px; font-weight: 500; cursor: pointer; background: transparent; color: var(--muted); font-family: inherit; transition: all 0.18s; }
 .draft-tab.active { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: 600; }
 .draft-body { padding: 16px 20px; }
@@ -206,6 +207,21 @@ header { background: var(--accent); color: #fff; padding: 0 40px; display: flex;
 .donation-cta-text { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
 .donation-cta-btn { width: 100%; padding: 10px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.18s; }
 .donation-cta-btn:hover { background: var(--accent2); }
+
+@media (max-width: 767px) {
+  .layout { grid-template-columns: 1fr; }
+  .left-panel { position: static; border-right: none; }
+  .summary-grid { grid-template-columns: 1fr; }
+  .notice-grid { grid-template-columns: 1fr; }
+  .tab-toggle { display: none !important; }
+  .mobile-pc-hint { display: block !important; }
+}
+.mobile-pc-hint { display: none; font-size: 11px; color: var(--muted); margin-left: auto; }
+@media (max-width: 480px) {
+  .header-right { gap: 6px; }
+  .model-btn { padding: 5px 8px; font-size: 11px; }
+  .cost-badge { min-width: 70px; font-size: 9px; padding: 4px 8px; }
+}
 </style>
 </head>
 <body>
@@ -217,8 +233,8 @@ header { background: var(--accent); color: #fff; padding: 0 40px; display: flex;
   </div>
   <div class="header-right">
     <div class="model-toggle">
-      <button class="model-btn active" id="btnGemini" onclick="setModel('gemini')">Gemini Flash</button>
-      <button class="model-btn" id="btnHaiku" onclick="setModel('haiku')">Claude Haiku</button>
+      <button class="model-btn active" id="btnGemini" onclick="setModel('gemini')">Gemini</button>
+      <button class="model-btn" id="btnHaiku" onclick="setModel('haiku')">Claude</button>
     </div>
     <div class="cost-badge" id="costBadge">무료 · <span>₩0</span></div>
   </div>
@@ -227,7 +243,10 @@ header { background: var(--accent); color: #fff; padding: 0 40px; display: flex;
 <div class="layout">
   <div class="left-panel">
     <div>
-      <div class="panel-title">법률 문서 입력</div>
+      <div class="panel-title-row">
+        <div class="panel-title">법률 문서 입력</div>
+        <div class="mobile-pc-hint">PC에서는 PDF, 직접입력도 할 수 있어요.</div>
+      </div>
       <div class="input-card">
         <div class="input-card-header">
           <div class="card-icon green">📋</div>
