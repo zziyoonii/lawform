@@ -1,4 +1,5 @@
 const { callGemini } = require('../lib/gemini');
+const { jsonrepair } = require('jsonrepair');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -35,11 +36,21 @@ module.exports = async (req, res) => {
     const match = cleaned.match(/\{[\s\S]*\}/);
     if (!match) throw new Error('JSON 파싱 실패. 응답: ' + cleaned.substring(0, 200));
 
-    const jsonStr = match[0]
+    let jsonStr = match[0]
       .replace(/[\u0000-\u001F\u007F]/g, ' ')
       .replace(/,(\s*[}\]])/g, '$1');
 
-    const result = JSON.parse(jsonStr);
+    let result;
+    try {
+      result = JSON.parse(jsonStr);
+    } catch {
+      try {
+        jsonStr = jsonrepair(jsonStr);
+        result = JSON.parse(jsonStr);
+      } catch (e2) {
+        throw new Error('JSON 파싱 실패. AI 응답 형식 오류: ' + e2.message);
+      }
+    }
     res.status(200).json({ success: true, result });
   } catch (e) {
     console.error('[분석 오류]', e.message);

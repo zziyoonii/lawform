@@ -1,6 +1,6 @@
 {
   "framework": null,
-  "buildCommand": null,
+  "buildCommand": "node scripts/inject-env.js",
   "outputDirectory": "public",
   "cleanUrls": true
 }

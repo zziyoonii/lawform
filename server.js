@@ -3,6 +3,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
+const { jsonrepair } = require('jsonrepair');
 
 // ── .env 파일 자동 로드 (npm 없이 직접 파싱)
 const envPath = path.join(__dirname, '.env');
@@ -271,6 +272,9 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
+  // #region agent log
+  fetch('http://127.0.0.1:7591/ingest/f4aa4160-c6d2-41ac-8cea-4f41232fb23e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'41ae2c'},body:JSON.stringify({sessionId:'41ae2c',location:'server.js:275',message:'Before url.parse',data:{reqUrl:req.url},hypothesisId:'H1_urlParse',timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   const parsed = url.parse(req.url, true);
 
   // ── favicon & 이미지 (logo.png 등)
@@ -299,14 +303,41 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // ── 정적 파일 (index.html)
+  // ── robots.txt
+  if (pathname === '/robots.txt') {
+    const base = (process.env.CANONICAL_URL || '').replace(/\/$/, '') || `http://localhost:${PORT}`;
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end(`User-agent: *\nAllow: /\nSitemap: ${base.replace(/\/$/, '')}/sitemap.xml\n`);
+    return;
+  }
+  // ── sitemap.xml
+  if (pathname === '/sitemap.xml') {
+    const base = (process.env.CANONICAL_URL || '').replace(/\/$/, '') || `http://localhost:${PORT}`;
+    res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8' });
+    res.end(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${base}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url></urlset>`);
+    return;
+  }
+  // ── 정적 파일 (index.html) + SEO/GA/AdSense 환경변수 주입
   if (parsed.pathname === '/' || parsed.pathname === '/index.html') {
     const filePath = path.join(__dirname, 'public', 'index.html');
     if (!fs.existsSync(filePath)) {
       res.writeHead(404); res.end('index.html 파일이 없습니다. server.js와 같은 폴더에 넣어주세요.'); return;
     }
+    let html = fs.readFileSync(filePath, 'utf8');
+    const gaId = process.env.GA_MEASUREMENT_ID || '';
+    const adsenseId = process.env.ADSENSE_CLIENT_ID || '';
+    const canonicalUrl = process.env.CANONICAL_URL || '';
+    html = html.replace('{{GA4_SCRIPT}}', gaId
+      ? `<!-- GA4 --><script async src="https://www.googletagmanager.com/gtag/js?id=${gaId}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}',{send_page_view:true});</script>`
+      : '<!-- GA4: GA_MEASUREMENT_ID 미설정 -->');
+    html = html.replace('{{ADSENSE_SCRIPT}}', adsenseId
+      ? `<!-- AdSense --><script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}" crossorigin="anonymous"></script>`
+      : '<!-- AdSense: ADSENSE_CLIENT_ID 미설정 -->');
+    html = html.replace('{{CANONICAL_LINK}}', canonicalUrl
+      ? `<link rel="canonical" href="${canonicalUrl}">`
+      : '');
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(fs.readFileSync(filePath));
+    res.end(html);
     return;
   }
 
@@ -360,11 +391,24 @@ const server = http.createServer(async (req, res) => {
         if (!match) throw new Error('JSON 파싱 실패. 응답: ' + cleaned.substring(0, 200));
 
         // JSON 안전 파싱 (제어문자 제거)
-        const jsonStr = match[0]
+        let jsonStr = match[0]
           .replace(/[\u0000-\u001F\u007F]/g, ' ')  // 제어문자 제거
           .replace(/,(\s*[}\]])/g, '$1');           // trailing comma 제거
 
-          const result = JSON.parse(jsonStr);
+        let result;
+        try {
+          result = JSON.parse(jsonStr);
+        } catch {
+          try {
+            jsonStr = jsonrepair(jsonStr);
+            result = JSON.parse(jsonStr);
+          } catch (e2) {
+            throw new Error('JSON 파싱 실패. AI 응답 형식 오류: ' + e2.message);
+          }
+        }
+          // #region agent log
+          fetch('http://127.0.0.1:7591/ingest/f4aa4160-c6d2-41ac-8cea-4f41232fb23e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'41ae2c'},body:JSON.stringify({sessionId:'41ae2c',location:'server.js:382',message:'About to log noticeDraft',data:{pathname:parsed.pathname,noticeDraftKeys:result.noticeDraft?Object.keys(result.noticeDraft):null},hypothesisId:'H2_noticeDraft',timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
           console.log('[noticeDraft]', JSON.stringify(result.noticeDraft, null, 2));
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ success: true, result }));
