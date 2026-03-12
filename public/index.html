@@ -488,7 +488,7 @@ function startLoading() {
 }
 function stopLoading() { clearInterval(stepTimer); }
 
-const ACCOUNT_COPY = '토스뱅크 100007262511 (예금주: qoo)';
+const ACCOUNT_COPY = '토스뱅크 100007262511 (예금주: 김지윤윤)';
 function showDonationModal() {
   const today = new Date().toDateString();
   if (localStorage.getItem('donationModalDismissed') === today) return;
@@ -700,18 +700,24 @@ function renderResult(r, plan) {
   if (trigger) {
     const today = new Date().toDateString();
     if (localStorage.getItem('donationModalDismissed') !== today) {
-      let hasBeenOffScreen = false;
-      const obs = new IntersectionObserver((entries) => {
-        if (window._donationModalShown) return;
-        const ent = entries[0];
-        if (!ent) return;
-        if (!ent.isIntersecting) { hasBeenOffScreen = true; return; }
-        if (!hasBeenOffScreen) return;
-        window._donationModalShown = true;
-        obs.disconnect();
-        showDonationModal();
-      }, { root: document.querySelector('.right-panel'), rootMargin: '0px', threshold: 0 });
-      obs.observe(trigger);
+      requestAnimationFrame(() => {
+        const doc = document.documentElement;
+        const needsScroll = doc.scrollHeight > doc.clientHeight;
+        if (needsScroll) {
+          const obs = new IntersectionObserver((entries) => {
+            if (window._donationModalShown) return;
+            if (!entries[0].isIntersecting) return;
+            window._donationModalShown = true;
+            obs.disconnect();
+            showDonationModal();
+          }, { root: null, threshold: 0 });
+          obs.observe(trigger);
+        } else {
+          setTimeout(() => {
+            if (!window._donationModalShown) showDonationModal();
+          }, 2500);
+        }
+      });
     }
   }
 }
