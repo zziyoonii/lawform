@@ -28,6 +28,8 @@ html = html.replace(
   '{{CANONICAL_LINK}}',
   canonicalUrl ? `<link rel="canonical" href="${canonicalUrl}">` : ''
 );
+const tossLink = process.env.TOSS_TRANSFER_LINK || 'supertoss://send?bank=092&accountNo=100007262511';
+html = html.replace(/\{\{TOSS_TRANSFER_LINK\}\}/g, tossLink);
 fs.writeFileSync(indexPath, html);
 
 // robots.txt, sitemap.xml 생성
@@ -41,4 +43,4 @@ fs.writeFileSync(
   `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${base}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url></urlset>`
 );
 
-console.log('[inject-env] GA:', gaId ? 'OK' : 'skip', '| AdSense:', adsenseId ? 'OK' : 'skip', '| Canonical:', canonicalUrl || 'skip');
+console.log('[inject-env] GA:', gaId ? 'OK' : 'skip', '| AdSense:', adsenseId ? 'OK' : 'skip', '| Canonical:', canonicalUrl || 'skip', '| Toss:', tossLink ? 'OK' : 'skip');

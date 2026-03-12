@@ -8,12 +8,17 @@ const { jsonrepair } = require('jsonrepair');
 // ── .env 파일 자동 로드 (npm 없이 직접 파싱)
 const envPath = path.join(__dirname, '.env');
 if (fs.existsSync(envPath)) {
-  fs.readFileSync(envPath, 'utf8')
-    .split('\n')
-    .forEach(line => {
-      const [key, ...val] = line.trim().split('=');
-      if (key && val.length) process.env[key.trim()] = val.join('=').trim();
-    });
+  let raw = fs.readFileSync(envPath, 'utf8');
+  if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1); // BOM 제거
+  raw.split(/\r?\n/).forEach(line => {
+    line = line.trim();
+    if (!line || line.startsWith('#')) return;
+    const eq = line.indexOf('=');
+    if (eq < 0) return;
+    const key = line.slice(0, eq).trim();
+    const val = line.slice(eq + 1).trim();
+    if (key) process.env[key] = val;
+  });
   console.log('✅ .env 파일 로드 완료');
 }
 
@@ -103,9 +108,64 @@ function extractRelevantSections(text, maxLength = 6000) {
     .join(' ');
   return (topPart + '\n\n[핵심 조항 발췌]\n' + relevant).substring(0, maxLength);
 }
+// ── 법령 API 캐시 (24시간)
+const lawCache = new Map();
+const LAW_CACHE_TTL = 24 * 60 * 60 * 1000;
+
+const LAW_LIST = [
+  { name: '개인정보보호법', lsiSeq: '270351' },
+  { name: '정보통신망법',   lsiSeq: '277377' },
+  { name: '전자상거래법',   lsiSeq: '269055' },
+];
+
+function fetchLawText(lsiSeq) {
+  const oc = process.env.LAW_API_OC;
+  if (!oc) return Promise.resolve('(법령 API 키 미설정)');
+
+  const cached = lawCache.get(lsiSeq);
+  if (cached && Date.now() - cached.time < LAW_CACHE_TTL) return Promise.resolve(cached.text);
+
+  return new Promise((resolve) => {
+    const path = `/DRF/lawService.do?OC=${oc}&target=law&MST=${lsiSeq}&type=XML`;
+    const req = https.request({
+      hostname: 'www.law.go.kr',
+      path,
+      method: 'GET',
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      timeout: 15000,
+    }, (res) => {
+      let data = '';
+      res.setEncoding('utf8');
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        // XML에서 조문 내용만 추출
+        const text = data
+          .replace(/<조문부호>[^<]*<\/조문부호>/g, '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s{2,}/g, ' ')
+          .trim()
+          .substring(0, 8000);
+        lawCache.set(lsiSeq, { text, time: Date.now() });
+        console.log(`[법령] ${lsiSeq} 로드 완료 (${text.length}자)`);
+        resolve(text);
+      });
+    });
+    req.on('error', (e) => { console.error(`[법령 오류] ${lsiSeq}: ${e.message}`); resolve('(법령 로드 실패)'); });
+    req.on('timeout', () => { req.destroy(); resolve('(법령 로드 시간 초과)'); });
+    req.end();
+  });
+}
+
+async function loadAllLaws() {
+  const results = await Promise.all(LAW_LIST.map(l => fetchLawText(l.lsiSeq)));
+  return LAW_LIST.map((l, i) => `[${l.name}]\n${results[i]}`).join('\n\n');
+}
+
+// 서버 시작 시 법령 미리 로드
+loadAllLaws().then(() => console.log('✅ 법령 데이터 로드 완료'));
 
 // ── 5. Gemini Flash API 호출
-async function callGemini(tosText, ppText, plan) {
+async function callGemini(tosText, ppText, plan, lawText = '') {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -202,6 +262,8 @@ async function callGemini(tosText, ppText, plan) {
 noticeChannels는 위 기준을 종합해 해당되는 채널을 모두 배열로 반환하세요.
 
 ---
+## 참조 법령 (최신 현행)
+${lawText || '(미로드)'}
 
 ## 서비스 기획안
 ${plan}
@@ -272,9 +334,6 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
-  // #region agent log
-  fetch('http://127.0.0.1:7591/ingest/f4aa4160-c6d2-41ac-8cea-4f41232fb23e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'41ae2c'},body:JSON.stringify({sessionId:'41ae2c',location:'server.js:275',message:'Before url.parse',data:{reqUrl:req.url},hypothesisId:'H1_urlParse',timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   const parsed = url.parse(req.url, true);
 
   // ── favicon & 이미지 (logo.png 등)
@@ -327,15 +386,17 @@ const server = http.createServer(async (req, res) => {
     const gaId = process.env.GA_MEASUREMENT_ID || '';
     const adsenseId = process.env.ADSENSE_CLIENT_ID || '';
     const canonicalUrl = process.env.CANONICAL_URL || '';
-    html = html.replace('{{GA4_SCRIPT}}', gaId
+    html = html.replace('<!-- {{GA4_SCRIPT}} -->', gaId
       ? `<!-- GA4 --><script async src="https://www.googletagmanager.com/gtag/js?id=${gaId}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}',{send_page_view:true});</script>`
       : '<!-- GA4: GA_MEASUREMENT_ID 미설정 -->');
-    html = html.replace('{{ADSENSE_SCRIPT}}', adsenseId
+    html = html.replace('<!-- {{ADSENSE_SCRIPT}} -->', adsenseId
       ? `<!-- AdSense --><script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}" crossorigin="anonymous"></script>`
       : '<!-- AdSense: ADSENSE_CLIENT_ID 미설정 -->');
     html = html.replace('{{CANONICAL_LINK}}', canonicalUrl
       ? `<link rel="canonical" href="${canonicalUrl}">`
       : '');
+    const tossLink = process.env.TOSS_TRANSFER_LINK || 'supertoss://send?bank=092&accountNo=100007262511';
+    html = html.replace(/\{\{TOSS_TRANSFER_LINK\}\}/g, tossLink);
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(html);
     return;
@@ -383,7 +444,8 @@ const server = http.createServer(async (req, res) => {
         const { tosText, ppText, plan } = JSON.parse(body);
         if (!plan) throw new Error('기획안이 없습니다');
 
-        const raw = await callGemini(tosText || '', ppText || '', plan);
+        const lawText = await loadAllLaws();
+        const raw = await callGemini(tosText || '', ppText || '', plan, lawText);
 
         // JSON 추출 (Gemini가 가끔 마크다운 코드블록으로 감쌀 수 있음)
         const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
@@ -406,11 +468,8 @@ const server = http.createServer(async (req, res) => {
             throw new Error('JSON 파싱 실패. AI 응답 형식 오류: ' + e2.message);
           }
         }
-          // #region agent log
-          fetch('http://127.0.0.1:7591/ingest/f4aa4160-c6d2-41ac-8cea-4f41232fb23e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'41ae2c'},body:JSON.stringify({sessionId:'41ae2c',location:'server.js:382',message:'About to log noticeDraft',data:{pathname:parsed.pathname,noticeDraftKeys:result.noticeDraft?Object.keys(result.noticeDraft):null},hypothesisId:'H2_noticeDraft',timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
-          console.log('[noticeDraft]', JSON.stringify(result.noticeDraft, null, 2));
-          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        console.log('[noticeDraft]', JSON.stringify(result.noticeDraft, null, 2));
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ success: true, result }));
       } catch(e) {
         console.error(`[분석 오류] ${e.message}`);

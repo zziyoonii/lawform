@@ -83,6 +83,7 @@ flowchart TB
     
     subgraph External [외부]
         Gemini[Gemini 2.5 Flash API]
+        LawAPI[국가법령정보 law.go.kr]
         Target[대상 URL]
     end
     
@@ -90,6 +91,7 @@ flowchart TB
     HTML --> API2
     API1 --> Target
     API2 --> Gemini
+    API2 --> LawAPI
 ```
 
 ### 4.2 상세 기술 스택
@@ -101,8 +103,9 @@ flowchart TB
 | **PDF** | PDF.js 3.11.174 (CDN) | 클라이언트 PDF 파싱 |
 | **백엔드** | Node.js 18+ (http, https, fs, path, url) | 로컬 서버, 의존성 없음 |
 | **AI** | Google Gemini 2.5 Flash API | 준법 검토 프롬프트 실행 |
+| **법령** | 국가법령정보 lawService.do (law.go.kr) | 개인정보보호법·정보통신망법·전자상거래법 본문 참조 |
 | **배포** | Vercel | 정적 호스팅 + Serverless Functions |
-| **환경** | .env (GEMINI_API_KEY) | API 키 관리 |
+| **환경** | .env (GEMINI_API_KEY, LAW_API_OC) | API 키 관리 |
 
 ### 4.3 프로젝트 구조
 
@@ -116,10 +119,10 @@ lawform/
 │   ├── fetch.js      # GET /api/fetch?url=... (URL 크롤링)
 │   └── analyze.js    # POST /api/analyze (Gemini 분석)
 ├── lib/              # 공통 로직
-│   ├── fetchUrl.js   # URL 크롤링, htmlToText
 │   ├── extract.js    # 핵심 섹션 추출 (토큰 절감)
-│   └── gemini.js     # Gemini API 호출
-├── server.js         # 로컬 개발용 HTTP 서버
+│   ├── gemini.js     # Gemini API 호출
+│   └── law-api.js    # 국가법령정보 lawSearch.do (목록·시행일)
+├── server.js         # 로컬 개발용 HTTP 서버 (lawService.do 법령 본문 로드)
 ├── vercel.json       # Vercel 설정
 └── package.json
 ```
@@ -128,7 +131,21 @@ lawform/
 
 - **토큰 절감**: `extractRelevantSections()`로 개인정보·수집·이용 등 키워드 기반 핵심 문장만 추출 (최대 6000자)
 - **로컬 캐시**: URL 크롤링 결과 1시간 메모리 캐시 (로컬 서버 한정)
+- **법령 캐시**: 24시간 메모리 캐시 (로컬 서버, LAW_API_OC 설정 시)
 - **무료 티어**: Gemini 2.5 Flash 무료 티어 활용
+
+### 4.5 환경 변수 (.env)
+
+| 변수 | 필수 | 설명 |
+|------|------|------|
+| GEMINI_API_KEY | 필수 | [AI Studio](https://aistudio.google.com/app/apikey)에서 발급 |
+| LAW_API_OC | 선택 | [open.law.go.kr](https://open.law.go.kr) 공동활용 API OC 인증값. 미설정 시 법령 본문 없이 분석 |
+| GA_MEASUREMENT_ID | 선택 | Google Analytics 4 |
+| ADSENSE_CLIENT_ID | 선택 | Google AdSense |
+| CANONICAL_URL | 선택 | 배포 도메인 |
+| TOSS_TRANSFER_LINK | 선택 | 모바일 토스 앱 바로 송금 링크 |
+
+**주의**: `.env` 변수는 반드시 **줄바꿈으로 구분** (한 줄에 여러 변수 시 두 번째부터는 미적용)
 
 ---
 
@@ -136,4 +153,4 @@ lawform/
 
 - AI 기반 참고용이며 법적 자문을 대체하지 않음
 - 실제 개정 전 법무팀 검토 권장
-- 모바일 반응형 미적용 (데스크톱 우선)
+- 모바일 반응형 적용 (1열 레이아웃, 토스 앱 바로 송금 버튼)
