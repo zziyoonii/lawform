@@ -573,7 +573,7 @@ async function analyze() {
     [tosText, ppText] = await Promise.all([getDocContent('tos'), getDocContent('pp')]);
   } catch(e) {
     stopLoading(); showOnly('errorBox');
-    document.getElementById('errorBox').innerHTML = `<strong>❌ 문서 수집 실패</strong><br>${e.message}<br><br>서버가 실행 중인지 확인하세요: <code>node server.js</code>`;
+    document.getElementById('errorBox').innerHTML = `<strong>❌ 문서 수집 실패</strong><br>${e.message}`;
     document.getElementById('analyzeBtn').disabled = false; return;
   }
   if (!tosText && !ppText) {
